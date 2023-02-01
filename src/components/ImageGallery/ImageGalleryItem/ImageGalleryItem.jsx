@@ -18,9 +18,12 @@ export const ImageGalleryItem = ({ largeImageURL, webformatURL, tags }) => {
   };
 
   const handleBackdropClick = event => {
-    if (event.target === event.currentTarget) {
-      setShowModal(false);
-    }
+    console.log(event);
+    console.log(event.target);
+    console.log(event.currentTarget);
+    // if (event.target === event.currentTarget) {
+    //   setShowModal(false);
+    // }
   };
 
   return (
@@ -31,8 +34,8 @@ export const ImageGalleryItem = ({ largeImageURL, webformatURL, tags }) => {
       {showModal && (
         <Modal
           largeImageURL={largeImageURL}
-          onClose={handleBackdropClick}
-          onChange={handleKeyDown}
+          onClose={handleBackdropClick()}
+          onChange={handleKeyDown()}
         />
       )}
     </div>
