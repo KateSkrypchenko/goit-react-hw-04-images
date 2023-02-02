@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,84 +12,69 @@ import { ImageGallery } from 'components/ImageGallery/ImageGallery';
 import { fetchSearchImage } from '../services/Api';
 import { Button } from 'components/Button/Button';
 
-export class App extends Component {
-  state = {
-    value: '',
-    images: [],
-    page: 1,
-    isLoading: false,
-    isLoadMore: false,
-  };
+export const App = () => {
+  const [value, setValue] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadMore, setIsLoadMore] = useState(false);
 
-  handelForm = event => {
-    if (this.state.value !== event) {
-      this.setState({
-        value: event,
-        images: [],
-        page: 1,
-        isLoadMore: false,
+  useEffect(() => {
+    if (value === '') {
+      return;
+    }
+    setIsLoading(true);
+    fetchSearchImage(value, page)
+      .then(response => {
+        setImages(prevState => [...prevState, ...response.hits]);
+        setIsLoadMore(true);
+        responseFetch(response);
+      })
+      .catch(error => {
+        toast.error('An error occurred. Please, reload the page');
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
+
+    const responseFetch = ({ totalHits, hits }) => {
+      const PER_PAGE = 12;
+      if (page === 1 && totalHits !== 0) {
+        toast.success(`Hooray! We found ${totalHits} images`);
+        setIsLoadMore(true);
+      }
+      if (totalHits === 0) {
+        toast.warn(`Sorry, there are no images matching your search query. Please try again.`);
+        setIsLoadMore(false);
+      } else if (hits.length < PER_PAGE) {
+        toast.info('These are all the pictures what we found. Try something else');
+        setIsLoadMore(false);
+      }
+    };
+  }, [value, page]);
+
+  const handelForm = event => {
+    if (value !== event) {
+      setValue(event);
+      setImages([]);
+      setPage(1);
+      setIsLoadMore(false);
     }
   };
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { value, page } = this.state;
-    if (prevState.value !== value || prevState.page !== page) {
-      this.fetchImages();
-    }
-  }
-
-  async fetchImages() {
-    const { value, page } = this.state;
-    this.setState({ isLoading: true });
-
-    try {
-      const response = await fetchSearchImage(value, page);
-      this.setState(prevState => ({
-        images: [...prevState.images, ...response.hits],
-        isLoadMore: true,
-      }));
-      this.responseFetch(response);
-    } catch (error) {
-      toast.error('An error occurred. Please, reload the page');
-    } finally {
-      this.setState({ isLoading: false });
-    }
-  }
-
-  responseFetch = ({ totalHits, hits }) => {
-    const PER_PAGE = 12;
-    if (this.state.page === 1 && totalHits !== 0) {
-      toast.success(`Hooray! We found ${totalHits} images`);
-      this.setState({ isLoadMore: true });
-    }
-    if (totalHits === 0) {
-      toast.warn(`Sorry, there are no images matching your search query. Please try again.`);
-      this.setState({ isLoadMore: false });
-    } else if (hits.length < PER_PAGE) {
-      toast.info('These are all the pictures what we found. Try something else');
-      this.setState({ isLoadMore: false });
-    }
+  const loadMore = () => {
+    setPage(prevState => prevState + 1);
+    setIsLoadMore(false);
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-      isLoadMore: false,
-    }));
-  };
-
-  render() {
-    const { isLoading, images, isLoadMore } = this.state;
-    return (
-      <AppBox>
-        <GlobalStyle />
-        <SearchBar onSubmit={this.handelForm} isSubmitting={isLoading} />
-        {images.length !== 0 && <ImageGallery items={images} />}
-        {isLoading && <Loader />}
-        {isLoadMore && <Button onClick={this.loadMore} />}
-        <ToastContainer autoClose={3000} />
-      </AppBox>
-    );
-  }
-}
+  return (
+    <AppBox>
+      <GlobalStyle />
+      <SearchBar onSubmit={handelForm} isSubmitting={isLoading} />
+      {images.length !== 0 && <ImageGallery items={images} />}
+      {isLoading && <Loader />}
+      {isLoadMore && <Button onClick={loadMore} />}
+      <ToastContainer autoClose={3000} />
+    </AppBox>
+  );
+};
